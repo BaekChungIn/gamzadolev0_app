@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>감자돌이 & 곰신 올인원</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-main: #F7F8F9; --card-bg: #FFFFFF;
+      --text-main: #191F28; --text-sub: #8B95A1;
+      --mil-green: #6B7B5C; --mil-green-light: #F0F3ED;
+      --pink-main: #F28C9F; --pink-light: #FFF0F3;
+      --border-soft: #F2F3F5; --halo-op: 0.2;
+    }
+    body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-main); color: var(--text-main); -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    .toss-card { background-color: var(--card-bg); border-radius: 28px; padding: 24px; box-shadow: 0 8px 24px rgba(107,123,92,0.04), 0 2px 8px rgba(0,0,0,0.02); border: 1px solid rgba(107,123,92,0.05); }
+    
+    @keyframes halo-pulse { 0% { transform: scale(1); opacity: var(--halo-op); } 50% { transform: scale(1.15); opacity: calc(var(--halo-op) * 1.5); } 100% { transform: scale(1); opacity: var(--halo-op); } }
+    .halo-bg { position: absolute; inset: -15px; border-radius: 50%; background: radial-gradient(circle, #FFE4E8 0%, transparent 70%); animation: halo-pulse 3s infinite ease-in-out; z-index: 0; transition: all 0.5s ease; }
+    
+    @keyframes rain-bill-full { 0% { transform: translateY(-30px) rotate(0deg) scale(0.9); opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(220px) rotate(360deg) scale(0.8); opacity: 0; } }
+    .falling-money { position: absolute; top: -20px; pointer-events: none; animation: rain-bill-full 2.2s linear forwards; z-index: 10; }
+    
+    @keyframes flash-bang { 0% { opacity: 0; background: transparent; } 20% { opacity: 1; background: #fff; } 100% { opacity: 0; background: transparent; } }
+    .flash-overlay { position: fixed; inset: 0; z-index: 9999; pointer-events: none; animation: flash-bang 1.5s ease-out forwards; }
+    
+    svg.sf-icon { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+</head>
+<body class="min-h-screen flex justify-center items-start sm:p-4 select-none antialiased relative">
+
+  <!-- 인증 (로그인/회원가입) 모달 오버레이 -->
+  <div id="auth-modal" class="fixed inset-0 z-[100] bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 sm:p-0 transition-opacity">
+    <div class="w-full max-w-sm bg-white rounded-[32px] p-8 shadow-2xl border border-[#F2F3F5] flex flex-col items-center">
+      <span class="text-5xl mb-4">🐯❤️👧</span>
+      <h2 class="text-[22px] font-extrabold text-[#191F28] mb-1">스마트 군생활 올인원</h2>
+      <p class="text-[13px] text-[#8B95A1] mb-8 text-center">계정을 연결하고 연인과 데이터를 동기화하세요.</p>
+      
+      <div class="w-full space-y-3 mb-6">
+        <input type="email" id="auth-email" placeholder="이메일 주소" class="w-full bg-[#F5F6F8] rounded-xl px-4 py-3.5 text-[14px] outline-none focus:ring-2 focus:ring-[var(--mil-green)] transition">
+        <input type="password" id="auth-password" placeholder="비밀번호 (6자리 이상)" class="w-full bg-[#F5F6F8] rounded-xl px-4 py-3.5 text-[14px] outline-none focus:ring-2 focus:ring-[var(--mil-green)] transition">
+      </div>
+      
+      <div class="w-full space-y-2 mb-6">
+        <button id="btn-login" class="w-full bg-[#191F28] text-white py-3.5 rounded-xl font-bold text-[14px] active:scale-95 transition">이메일로 로그인</button>
+        <button id="btn-signup" class="w-full bg-white border border-[#E5E8EB] text-[#4E5968] py-3.5 rounded-xl font-bold text-[14px] active:bg-gray-50 transition">새 계정 만들기</button>
+      </div>
+
+      <div class="w-full flex items-center justify-center gap-3 mb-6">
+        <div class="h-px bg-[#E5E8EB] flex-1"></div>
+        <span class="text-[11px] text-[#8B95A1] font-medium">또는</span>
+        <div class="h-px bg-[#E5E8EB] flex-1"></div>
+      </div>
+      
+      <button id="btn-google" class="w-full flex items-center justify-center gap-2 bg-[#F5F6F8] text-[#191F28] py-3.5 rounded-xl font-bold text-[14px] active:scale-95 transition border border-[#E5E8EB]">
+        <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google 계정으로 계속
+      </button>
+    </div>
+  </div>
+
+  <div class="w-full max-w-md bg-[var(--bg-main)] min-h-screen sm:min-h-[900px] sm:rounded-[40px] sm:shadow-2xl flex flex-col relative overflow-hidden sm:border-[6px] sm:border-gray-200">
+    
+    <header class="sticky top-0 bg-[var(--bg-main)]/90 backdrop-blur-md px-6 py-4 flex items-center justify-between z-40">
+      <div class="flex items-center gap-2">
+        <span id="app-logo-emoji" class="text-2xl">🐯</span>
+        <div><h1 id="app-header-title" class="text-[19px] font-extrabold tracking-tight">짬타이거</h1><p id="header-subtitle" class="text-[12px] text-[#8B95A1] font-semibold mt-0.5">스마트 군생활 올인원</p></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-letter-alert" onclick="openLetterModal()" class="hidden relative w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center transition-transform active:scale-95"><span class="text-lg">💌</span><span class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span></button>
+        <button onclick="openModal('modal-settings')" class="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-[#4E5968] transition-transform active:scale-95"><svg class="w-5 h-5 sf-icon" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 pb-24 overflow-y-auto no-scrollbar relative z-10">
+      
+      <!-- [1] 홈 탭 -->
+      <section id="tab-home" class="space-y-4 pt-2">
+        <div id="clean-state-banner" class="toss-card flex flex-col items-center justify-center text-center py-10">
+          <span class="text-4xl mb-3">🌱</span>
+          <h2 class="text-[18px] font-extrabold mb-2">군생활 기록 시작하기</h2>
+          <p class="text-[13px] text-[#8B95A1] mb-5">설정에서 일정을 연동하면 성장이 시작됩니다.</p>
+          <button onclick="openModal('modal-settings')" class="bg-[var(--mil-green)] text-white px-5 py-3 rounded-xl font-bold text-[14px] active:scale-95 transition">+ 복무 일정 설정하기</button>
+        </div>
+
+        <div id="soldier-card" class="toss-card relative overflow-hidden group cursor-pointer hidden" onclick="window.triggerEvolutionCutscene()">
+          <div class="flex items-center gap-5">
+            <div class="w-[76px] h-[76px] rounded-[22px] bg-[#EEF2EB] flex items-center justify-center relative overflow-hidden flex-shrink-0 border border-[#D5E0CD]" id="bf-img-container"></div>
+            <div class="flex-1">
+              <div class="flex justify-between items-start">
+                <div><div id="bf-name" class="text-[12px] text-[var(--mil-green)] font-bold mb-0.5">대한민국 육군 짬타이거</div><div class="text-[19px] font-extrabold tracking-tight flex items-baseline gap-1"><span id="bf-rank">이병</span><span id="bf-dday" class="text-[#8B95A1] text-[15px] font-semibold ml-1">D-0</span></div></div>
+                <div id="bf-pct" class="text-[18px] font-black">0.0%</div>
+              </div>
+              <div class="mt-3">
+                <div class="flex justify-between text-[11px] font-bold text-[#8B95A1] mb-1.5"><span id="bf-next-promo">-</span><span id="bf-served-days">0일 / 0일</span></div>
+                <div class="w-full h-2.5 bg-[#F2F3F5] rounded-full overflow-hidden"><div id="bf-progress" class="h-full bg-[var(--mil-green)] rounded-full transition-all duration-1000" style="width: 0%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="gf-profile-card" class="toss-card border-[1.5px] border-[var(--pink-light)] relative hidden">
+          <div class="flex items-center gap-5">
+            <div class="w-[76px] h-[76px] rounded-[22px] bg-[var(--pink-light)] flex items-center justify-center relative flex-shrink-0">
+              <div class="halo-bg"></div>
+              <div id="gf-img-container" class="w-full h-full relative z-10 flex items-center justify-center overflow-hidden rounded-[22px]"></div>
+            </div>
+            <div class="flex-1">
+              <div class="text-[12px] text-[var(--pink-main)] font-bold flex items-center gap-1 mb-0.5"><span id="gf-rank-icon">🌱</span> <span id="gf-rank-name">곰신 새싹</span></div>
+              <div id="gf-name" class="text-[19px] font-extrabold tracking-tight">예쁜 곰신 베어</div>
+              <div class="mt-2.5 bg-[#FFF5F7] px-3.5 py-2.5 rounded-xl border border-[#FFE4E8]">
+                <div class="text-[13px] text-[#D94867] font-semibold flex items-center gap-2"><span>💬</span><input type="text" id="one-line-msg" placeholder="여기에 한줄 편지를 적어보세요 ❤️" class="bg-transparent border-none outline-none w-full text-[#D94867] placeholder-[#FCA5A5]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="salary-card" class="toss-card bg-[#283224] text-white relative overflow-hidden hidden" onclick="window.triggerExtraDrop()">
+          <div id="money-rain-container" class="absolute inset-0 pointer-events-none z-10 w-full h-full overflow-hidden"></div>
+          <div class="relative z-20 flex justify-between items-start mb-6">
+            <div><div class="text-[13px] text-[#9CAEA4] font-semibold flex items-center gap-1.5"><svg class="w-4 h-4 sf-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>실시간 복무 급여 통장</div><div class="text-[10px] text-[#708075] mt-1">2026 병 봉급 기준 (최대 150만)</div></div>
+            <label class="flex items-center gap-2 bg-[#3A4535] px-3 py-1.5 rounded-full cursor-pointer border border-[#485642]" onclick="event.stopPropagation()"><input type="checkbox" id="check-matching" checked onchange="window.updateLiveSalaryTick()" class="accent-[#8A9A80] w-4 h-4 rounded"><span class="text-[#E8ECE5] text-[11px] font-bold">매칭금(월 55만)</span></label>
+          </div>
+          <div class="relative z-20 flex flex-col justify-end">
+            <div class="text-[12px] text-[#8A9A80] font-medium mb-1">현재까지 축적된 군 복무 총 자산</div>
+            <div class="flex items-baseline gap-1"><span id="live-total-salary" class="text-[32px] font-extrabold tracking-tight drop-shadow-md tabular-nums">0.00</span><span class="text-[18px] font-bold text-[#9CAEA4]">원</span></div>
+          </div>
+        </div>
+
+        <div class="toss-card">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-[16px] font-bold flex items-center gap-2"><svg class="w-5 h-5 sf-icon text-[#8B95A1]" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>기동 경로 탐색기</h3><button onclick="window.getGPSLocation()" class="bg-[#F2F3F5] text-[#4E5968] text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1"><svg class="w-3 h-3 sf-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>현위치 GPS</button></div>
+          <div class="space-y-3 mb-4">
+            <input type="text" id="route-start" placeholder="출발지 (부대 위치)" class="w-full bg-[#F5F6F8] rounded-xl px-4 py-3 text-[13px] font-semibold outline-none" value="강원 화천">
+            <input type="text" id="route-end" placeholder="도착지 (우리 집)" class="w-full bg-[#F5F6F8] rounded-xl px-4 py-3 text-[13px] font-semibold outline-none" value="서울역">
+            <button onclick="window.calcRoute()" class="w-full bg-[#191F28] text-white py-3 rounded-xl font-bold text-[14px]">경로 탐색 ⚡</button>
+          </div>
+          <div id="route-results" class="border-t border-[#F2F3F5] pt-4 hidden"></div>
+        </div>
+      </section>
+
+      <!-- [2] 적금 탭 -->
+      <section id="tab-savings" class="space-y-4 pt-2 hidden">
+        <div class="bg-[var(--card-bg)] rounded-[28px] p-6 shadow-sm border border-[var(--border-soft)]">
+           <h2 class="text-[18px] font-extrabold mb-1 flex justify-between items-center">장병내일준비적금 <span class="bg-[#191F28] text-white text-[10px] px-2 py-1 rounded-md">매칭 100%</span></h2>
+           <p class="text-[12px] text-[#4E5968] mb-5">원금 100% 국가 지원으로 전역 시 최대 2,050만 원 수령. 은행당 최대 30만원 분할 가입 필수.</p>
+           
+           <h3 class="text-[14px] font-bold mb-3">1. 가입할 은행 선택 (최대 4개)</h3>
+           <div class="grid grid-cols-4 gap-2 mb-5" id="bank-selector-grid"></div>
+           <div id="selected-banks-container" class="space-y-4 mb-5"></div>
+           <div id="saving-split-warning" class="text-[11px] font-bold text-[#D94867] bg-[#FFF0F3] p-3 rounded-lg text-center mb-5 hidden">⚡ 한도 초과! 금액을 조정해주세요.</div>
+
+           <div class="mt-2 bg-[#283224] rounded-2xl p-5 text-white">
+             <div class="text-[12px] text-[#8A9A80] mb-1">만기 시 총 예상 수령액</div>
+             <div class="text-[28px] font-black mb-2 tracking-tight"><span id="saving-total-result">0</span>원</div>
+             <div class="flex gap-3 text-[11px] text-[#708075]"><span>원금: <span id="saving-prin">0</span></span><span>이자: <span id="saving-int">0</span></span></div>
+             <div class="text-[11px] text-[#E8ECE5] mt-1 font-bold">정부 매칭금(100%): <span id="saving-match">0</span></div>
+           </div>
+        </div>
+      </section>
+
+      <!-- [3] 굿맨 탭 -->
+      <section id="tab-goodman" class="space-y-4 pt-2 hidden">
+        <div class="bg-[var(--card-bg)] rounded-[28px] p-6 shadow-sm border border-[var(--border-soft)]">
+          <div class="flex justify-between items-start mb-2"><h2 class="text-[18px] font-extrabold">굿맨 (Good Man) 스킨케어</h2><span class="bg-[#191F28] text-white text-[10px] px-2.5 py-1 rounded-full font-bold">PX TOP 24</span></div>
+          <p class="text-[12px] text-[#4E5968] mb-4">장바구니에 담아 조르거나, 내 물건 체크 후 <strong>✨ 굿맨 변신</strong>을 누르면 상세 도포 순서를 알려드립니다.</p>
+          <div class="space-y-2.5" id="px-items-container"></div>
+        </div>
+        <div class="h-20"></div>
+        <div class="fixed bottom-20 left-0 right-0 px-5 max-w-md mx-auto z-30">
+          <div class="bg-[#191F28] rounded-2xl p-4 shadow-xl flex items-center justify-between">
+            <div class="text-white text-[13px] font-bold">선택: <span id="px-sel-cnt" class="text-[var(--mil-green-light)]">0</span>개</div>
+            <div class="flex gap-2"><button onclick="window.sendL()" class="bg-[#3A4535] text-white px-3 py-2 rounded-xl text-[12px] font-bold">💌 조르기</button><button onclick="window.showR()" class="bg-[#F2BA49] text-[#191F28] px-4 py-2 rounded-xl text-[13px] font-extrabold">✨ 굿맨 변신</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- [4] QnA 탭 -->
+      <section id="tab-qna" class="space-y-4 pt-2 hidden">
+        <div class="toss-card bg-gradient-to-br from-[#EEF2EB] to-[#FFF0F3] text-center py-8"><div class="text-[12px] font-bold text-[#7A8B70] mb-2">Day 1. 오늘의 질문</div><h2 class="text-[17px] font-extrabold leading-snug px-4">"우리가 처음 만났을 때,<br>서로의 첫인상은 어땠어?"</h2></div>
+        <div class="toss-card space-y-5">
+          <div><label class="text-[13px] font-bold mb-2 px-1">나의 답변</label><textarea id="qna-ans" class="w-full bg-[#F5F6F8] rounded-2xl p-4 text-[14px] outline-none h-28 resize-none" placeholder="서로 답변을 남겨야 공개됩니다."></textarea><button id="btn-submit-qna" class="w-full mt-2 bg-[#191F28] text-white py-3.5 rounded-xl font-bold">답변 등록/수정</button></div>
+          <div class="pt-5 border-t border-[#F2F3F5]"><label class="text-[13px] font-bold mb-2 px-1">상대방의 답변</label><div id="qna-partner" class="w-full bg-[#F5F6F8] rounded-2xl p-4 h-28 flex flex-col items-center justify-center text-center relative overflow-hidden"><span id="qna-lock-icon" class="text-2xl mb-1 opacity-50">🔒</span><span id="qna-lock-text" class="text-[12px] text-[#8B95A1] font-medium">상대방의 답변 대기중</span><div id="partner-actual-answer" class="absolute inset-0 p-4 text-[14px] text-[#191F28] text-left hidden bg-white border border-[#E5E8EB] rounded-2xl"></div></div></div>
+        </div>
+      </section>
+
+      <!-- [5] 혜택 탭 -->
+      <section id="tab-benefits" class="space-y-4 pt-2 hidden">
+        <div class="toss-card"><h2 class="text-[18px] font-extrabold mb-1">군인 특별 혜택 (2026 최신)</h2>
+          <div class="space-y-3 mt-4">
+            <div class="flex gap-3 p-3 bg-[#F5F6F8] rounded-xl"><div class="text-2xl">💰</div><div><div class="text-[14px] font-bold">적금 & 급여 개선</div><div class="text-[12px] text-[#4E5968]">매칭 100%, 한도 월 55만</div></div></div>
+            <div class="flex gap-3 p-3 bg-[#F5F6F8] rounded-xl"><div class="text-2xl">🍲</div><div><div class="text-[14px] font-bold">생활관 개선</div><div class="text-[12px] text-[#4E5968]">2~4인실 개편 및 간부 1인실</div></div></div>
+            <div class="flex gap-3 p-3 bg-[#F5F6F8] rounded-xl"><div class="text-2xl">🚆</div><div><div class="text-[14px] font-bold">TMO 무임 승차</div><div class="text-[12px] text-[#4E5968]">KTX 전 구간 무료 (휴가증)</div></div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bg-white/95 backdrop-blur-md px-6 py-3 pb-safe flex justify-between items-center z-40 border-t border-[#F2F3F5] shrink-0">
+      <button onclick="window.switchTab('home')" id="nav-btn-home" class="flex flex-col items-center gap-1 text-[var(--mil-green)] scale-105"><svg class="w-6 h-6 sf-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span class="text-[10px] font-bold">홈</span></button>
+      <button onclick="window.switchTab('savings')" id="nav-btn-savings" class="flex flex-col items-center gap-1 text-[#B0B8C1]"><svg class="w-6 h-6 sf-icon" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span class="text-[10px] font-bold">적금</span></button>
+      <button onclick="window.switchTab('goodman')" id="nav-btn-goodman" class="flex flex-col items-center gap-1 text-[#B0B8C1]"><svg class="w-6 h-6 sf-icon" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="text-[10px] font-bold">PX굿맨</span></button>
+      <button onclick="window.switchTab('qna')" id="nav-btn-qna" class="flex flex-col items-center gap-1 text-[#B0B8C1]"><svg class="w-6 h-6 sf-icon" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span class="text-[10px] font-bold">Q&A</span></button>
+      <button onclick="window.switchTab('benefits')" id="nav-btn-benefits" class="flex flex-col items-center gap-1 text-[#B0B8C1]"><svg class="w-6 h-6 sf-icon" viewBox="0 0 24 24"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span class="text-[10px] font-bold">혜택</span></button>
+    </nav>
+
+    <!-- 환경설정 모달 -->
+    <div id="modal-settings" class="fixed inset-0 z-50 bg-[#191F28]/60 backdrop-blur-sm hidden items-end sm:items-center justify-center p-4">
+      <div class="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl flex flex-col max-h-[85vh]">
+        <div class="flex justify-between items-center mb-5 shrink-0"><h3 class="font-bold text-[18px]">환경설정 & 커플 연동</h3><button onclick="closeModal('modal-settings')" class="w-8 h-8 rounded-full bg-[#F5F6F8] font-bold">✕</button></div>
+        <div class="overflow-y-auto no-scrollbar space-y-6 pb-6">
+          
+          <div class="border-b border-[#F2F3F5] pb-5">
+             <h4 class="text-[13px] font-bold mb-3 text-[var(--pink-main)]">❤️ 실시간 데이터베이스 연동</h4>
+             <p class="text-[11px] text-[#8B95A1] mb-3">연동 코드를 공유하면 일정, Q&A, 테마가 실시간 동기화됩니다.</p>
+             <div id="couple-link-ui">
+                <div class="bg-[#FFF0F3] p-3 rounded-xl flex justify-between items-center mb-2">
+                   <span class="text-[12px] font-semibold text-[#D94867]">나의 연결 코드</span>
+                   <span id="my-couple-code" class="font-black text-[#D94867] tracking-widest text-[14px]">생성중...</span>
+                </div>
+                <div class="flex gap-2">
+                   <input type="text" id="partner-code-input" placeholder="상대방의 6자리 코드 입력" class="flex-1 bg-white border border-[#E5E8EB] rounded-xl px-3 text-[13px] outline-none uppercase">
+                   <button id="btn-submit-code" class="bg-[#191F28] text-white px-4 rounded-xl font-bold text-[12px] active:scale-95">연결</button>
+                </div>
+             </div>
+             <div id="couple-linked-ui" class="hidden bg-[#F0F3ED] p-3 rounded-xl text-center border border-[#D5E0CD]">
+                <span class="text-[13px] font-bold text-[var(--mil-green)]">✅ 서로의 계정이 연결되었습니다!</span>
+             </div>
+          </div>
+
+          <div>
+            <h4 class="text-[13px] font-bold mb-2">복무 일정 (공용 동기화)</h4>
+            <div class="flex gap-2 mb-2"><input type="date" id="set-enlist" class="flex-1 bg-[#F5F6F8] border border-[#E5E8EB] rounded-xl px-3 py-2.5 text-[13px] font-bold outline-none"><input type="date" id="set-discharge" class="flex-1 bg-[#F5F6F8] border border-[#E5E8EB] rounded-xl px-3 py-2.5 text-[13px] font-bold outline-none"></div>
+            <button onclick="window.autoD()" class="text-[11px] font-bold text-[var(--mil-green)] bg-[var(--mil-green-light)] px-3 py-1.5 rounded-lg border border-[#D5E0CD]">⚡ 육군 18개월 자동채우기</button>
+          </div>
+          <div>
+             <h4 class="text-[13px] font-bold mb-2">군인 테마</h4>
+             <div class="grid grid-cols-2 gap-2 mb-3"><button onclick="window.cTh('bf', 'gamja')" id="theme-bf-gamja" class="py-2.5 rounded-xl border-2 font-bold text-[12px]">🥔 감자돌이</button><button onclick="window.cTh('bf', 'tiger')" id="theme-bf-tiger" class="py-2.5 rounded-xl border-2 font-bold text-[12px]">🐯 짬타이거</button></div>
+             <h4 class="text-[13px] font-bold mb-2 mt-4">곰신 테마</h4>
+             <div class="grid grid-cols-2 gap-2"><button onclick="window.cTh('gf', 'gomsin')" id="theme-gf-gomsin" class="py-2.5 rounded-xl border-2 font-bold text-[12px]">👧 곰신 베어</button><button onclick="window.cTh('gf', 'cat')" id="theme-gf-cat" class="py-2.5 rounded-xl border-2 font-bold text-[12px]">🐈‍⬛ 꽃냥이</button></div>
+          </div>
+          
+          <button id="btn-logout" class="w-full text-center text-[#8B95A1] text-[12px] font-bold underline mt-4 active:text-[#191F28]">로그아웃</button>
+        </div>
+        <button id="btn-save-settings" class="w-full mt-2 bg-[#191F28] text-white py-3.5 rounded-xl font-bold text-[15px] active:scale-95 transition">DB 저장 및 반영</button>
+      </div>
+    </div>
+    <div id="modal-alert" class="fixed inset-0 z-[110] bg-[#191F28]/60 backdrop-blur-sm hidden items-center justify-center p-4"><div class="bg-white w-full max-w-[320px] rounded-[24px] p-6 text-center shadow-2xl"><h3 id="alert-title" class="font-bold text-[17px] mb-3">알림</h3><div id="alert-message" class="text-[13px] text-[#4E5968] mb-6 whitespace-pre-line text-left leading-relaxed max-h-[60vh] overflow-y-auto no-scrollbar"></div><button onclick="closeModal('modal-alert')" class="w-full py-3.5 bg-[#191F28] text-white rounded-xl font-bold text-[14px]">확인</button></div></div>
+  </div>
+
+  <!-- Firebase 및 핵심 로직 (모듈 형태) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, onAuthStateChanged, signOut, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Config (캔버스 제공 객체)
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+        // Fallback for independent run (if no real DB config is injected, it will throw, but handled)
+    };
+    
+    let app, auth, db;
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+    } catch(e) { console.error("Firebase init failed", e); }
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'gomsin-allinone';
+    
+    // 로컬 상태 및 캐시
+    let currentUser = null;
+    let myUid = null;
+    let partnerUid = null;
+    let unsubMe = null;
+    let unsubPartner = null;
+
+    const state = { enlistDate: null, dischargeDate: null, bfTheme: 'tiger', gfTheme: 'cat', bfRankStr: '미설정', pxCart: [], incM: true, selBanks: [] };
+
+    // 유틸
+    const q = id => document.getElementById(id);
+    const openModal = id => { q(id).classList.remove('hidden'); q(id).classList.add('flex'); }
+    window.closeModal = id => { q(id).classList.add('hidden'); q(id).classList.remove('flex'); }
+    const showAlert = (t, m) => { q('alert-title').innerText = t; q('alert-message').innerHTML = m; openModal('modal-alert'); }
+
+    // --- Firebase Auth 흐름 ---
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        if(!user.emailVerified && user.providerData[0].providerId === 'password') {
+          showAlert('이메일 인증 필요', '가입하신 이메일로 인증 메일이 발송되었습니다. 링크를 클릭하여 인증을 완료한 후 다시 로그인해주세요.');
+          signOut(auth);
+          return;
+        }
+        currentUser = user;
+        myUid = user.uid;
+        q('auth-modal').classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => q('auth-modal').classList.add('hidden'), 300);
+        
+        await initUserProfile();
+      } else {
+        currentUser = null;
+        myUid = null;
+        q('auth-modal').classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        if(unsubMe) unsubMe(); if(unsubPartner) unsubPartner();
+      }
+    });
+
+    // 로그인 UI 바인딩
+    q('btn-login').onclick = () => {
+      const e = q('auth-email').value, p = q('auth-password').value;
+      if(!e || p.length < 6) return showAlert('오류', '이메일과 6자리 이상 비밀번호를 입력하세요.');
+      signInWithEmailAndPassword(auth, e, p).catch(err => showAlert('로그인 실패', '이메일 또는 비밀번호가 틀렸습니다.'));
+    };
+    
+    q('btn-signup').onclick = async () => {
+      const e = q('auth-email').value, p = q('auth-password').value;
+      if(!e || p.length < 6) return showAlert('오류', '이메일과 6자리 이상 비밀번호를 입력하세요.');
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, e, p);
+        await sendEmailVerification(cred.user);
+        showAlert('가입 완료!', '작성하신 이메일로 인증 메일이 발송되었습니다. 수신함을 확인하여 인증을 완료해주세요.');
+        signOut(auth);
+      } catch(err) {
+        if(err.code === 'auth/email-already-in-use') showAlert('오류', '이미 가입된 이메일입니다.');
+        else showAlert('가입 실패', err.message);
+      }
+    };
+    
+    q('btn-google').onclick = () => {
+      signInWithPopup(auth, new GoogleAuthProvider()).catch(err => showAlert('구글 로그인 실패', err.message));
+    };
+
+    q('btn-logout').onclick = () => { signOut(auth); closeModal('modal-settings'); };
+
+    // Custom Token Login Fallback
+    if(typeof __initial_auth_token !== 'undefined' && !currentUser) {
+        signInWithCustomToken(auth, __initial_auth_token).catch(e=>console.log(e));
+    }
+
+    // --- Firestore 커플 연동 데이터 구조 ---
+    // [RULE 1] 경로: artifacts/{appId}/public/data/users/{uid} (프로필, 설정, QnA 동기화)
+    // [RULE 1] 경로: artifacts/{appId}/public/data/coupleCodes/{code} (코드 매핑 테이블)
+
+    async function initUserProfile() {
+      if(!myUid) return;
+      const profileRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', myUid);
+      let snap = await getDoc(profileRef);
+      
+      let profileData = {};
+      if(!snap.exists()) {
+        // 새 유저 생성 시 랜덤 커플 코드 발급
+        const myCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        profileData = {
+           myCode: myCode, partnerUid: null, enlistDate: '', dischargeDate: '',
+           bfTheme: 'tiger', gfTheme: 'cat', myQnaAnswer: ''
+        };
+        await setDoc(profileRef, profileData);
+        // 코드 테이블 등록
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'coupleCodes', myCode), { ownerUid: myUid });
+      } else {
+        profileData = snap.data();
+      }
+
+      q('my-couple-code').innerText = profileData.myCode;
+      
+      // 실시간 프로필 리스너 시작 (내가 수정한 내역이 반영됨)
+      unsubMe = onSnapshot(profileRef, (docSnap) => {
+        const d = docSnap.data();
+        if(!d) return;
+        state.bfTheme = d.bfTheme || 'tiger';
+        state.gfTheme = d.gfTheme || 'cat';
+        if(d.enlistDate) state.enlistDate = new Date(d.enlistDate);
+        if(d.dischargeDate) state.dischargeDate = new Date(d.dischargeDate);
+        
+        q('set-enlist').value = d.enlistDate || '';
+        q('set-discharge').value = d.dischargeDate || '';
+        q('qna-ans').value = d.myQnaAnswer || '';
+        
+        // 연동 감지
+        if(d.partnerUid && d.partnerUid !== partnerUid) {
+          partnerUid = d.partnerUid;
+          state.isLinked = true;
+          q('couple-link-ui').classList.add('hidden');
+          q('couple-linked-ui').classList.remove('hidden');
+          listenToPartner(partnerUid);
+        }
+        
+        // View 갱신
+        window.cTh('bf', state.bfTheme, true); 
+        window.cTh('gf', state.gfTheme, true);
+        updateH();
+      }, (e) => console.log(e));
+    }
+
+    // 상대방 프로필 실시간 감지 (일정, Q&A 동기화)
+    function listenToPartner(pUid) {
+      if(unsubPartner) unsubPartner();
+      const pRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', pUid);
+      unsubPartner = onSnapshot(pRef, (snap) => {
+        const d = snap.data();
+        if(!d) return;
+        
+        // 상대방이 설정한 일정이 있으면 덮어쓰기 (공동 동기화)
+        if(d.enlistDate && d.enlistDate !== q('set-enlist').value) {
+            state.enlistDate = new Date(d.enlistDate);
+            q('set-enlist').value = d.enlistDate;
+            updateH();
+        }
+
+        // QnA 블라인드 해제 로직
+        const myAns = q('qna-ans').value.trim();
+        const pAns = d.myQnaAnswer || '';
+        if(myAns.length > 0 && pAns.length > 0) {
+           q('qna-lock-icon').classList.add('hidden');
+           q('qna-lock-text').classList.add('hidden');
+           q('partner-actual-answer').classList.remove('hidden');
+           q('partner-actual-answer').innerText = pAns;
+        } else {
+           q('qna-lock-icon').classList.remove('hidden');
+           q('qna-lock-text').classList.remove('hidden');
+           q('partner-actual-answer').classList.add('hidden');
+           q('qna-lock-text').innerHTML = pAns.length > 0 ? '내 답변을 등록해야<br>공개됩니다.' : '상대방의 답변<br>대기중입니다.';
+        }
+      }, (e) => console.log(e));
+    }
+
+    // 코드 입력으로 파트너 연결
+    q('btn-submit-code').onclick = async () => {
+      const code = q('partner-code-input').value.toUpperCase().trim();
+      if(code.length !== 6) return showAlert('오류', '정확한 6자리 코드를 입력해주세요.');
+      if(code === q('my-couple-code').innerText) return showAlert('오류', '자신의 코드는 입력할 수 없습니다.');
+      
+      const codeRef = doc(db, 'artifacts', appId, 'public', 'data', 'coupleCodes', code);
+      const codeSnap = await getDoc(codeRef);
+      if(!codeSnap.exists()) return showAlert('오류', '유효하지 않은 코드입니다.');
+      
+      const ownerUid = codeSnap.data().ownerUid;
+      
+      // 내 프로필에 상대 UID 저장
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', myUid), { partnerUid: ownerUid });
+      // 상대 프로필에 내 UID 저장 (양방향 연결)
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', ownerUid), { partnerUid: myUid });
+      
+      showAlert('연동 성공!', '상대방과 완벽하게 연결되었습니다! 앱 설정과 일정이 실시간 동기화됩니다. ❤️');
+    };
+
+    // 설정 DB 반영
+    q('btn-save-settings').onclick = async () => {
+      if(!myUid) return;
+      const e = q('set-enlist').value, d = q('set-discharge').value;
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', myUid), {
+        enlistDate: e, dischargeDate: d, bfTheme: state.bfTheme, gfTheme: state.gfTheme
+      });
+      closeModal('modal-settings');
+      showAlert('저장 완료', '설정이 데이터베이스에 동기화되었습니다.');
+    };
+
+    // Q&A DB 반영
+    q('btn-submit-qna').onclick = async () => {
+      if(!myUid) return;
+      const ans = q('qna-ans').value.trim();
+      if(!ans) return showAlert('오류', '답변을 작성해주세요.');
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', myUid), { myQnaAnswer: ans });
+      showAlert('작성 완료', '답변이 기록되었습니다.');
+    };
+
+
+    // ============================================
+    // 이하 기존 Vanilla JS 시각 및 계산 로직 
+    // ============================================
+    
+    // PX 화장품 목록
+    const pxI = [
+      { id:1, n:'VT 코스메틱 리들샷 100/300', c:'기능성/세럼', h:1 }, { id:2, n:'CKD 레티노 콜라겐 크림', c:'기능성/세럼', h:1 },
+      { id:3, n:'AHC 텐 레볼루션 아이크림', c:'기능성/세럼', h:1 }, { id:4, n:'본에스티스 퍼펙트 세트', c:'기능성/세럼', h:1 },
+      { id:5, n:'참존 마유 크림 에스트라', c:'크림', h:0 }, { id:6, n:'닥터지 로얄 블랙 스네일', c:'크림', h:1 },
+      { id:7, n:'라운드랩 독도 크림', c:'크림', h:0 }, { id:8, n:'피지오겔 DMT 크림', c:'크림', h:0 },
+      { id:9, n:'라운드랩 1025 독도 토너', c:'토너/패드', h:1 }, { id:10, n:'아누아 어성초 77 수딩 토너', c:'토너/패드', h:1 },
+      { id:11, n:'아비브 어성초 스팟 패드', c:'토너/패드', h:0 }, { id:12, n:'구달 청귤 비타C 패드', c:'토너/패드', h:0 },
+      { id:13, n:'아이소이 응급 진정 세럼', c:'기능성/세럼', h:0 }, { id:14, n:'아누아 어성초 80 앰플', c:'기능성/세럼', h:0 },
+      { id:15, n:'포맨 독도 올인원 플루이드', c:'남성/올인원', h:0 }, { id:16, n:'센텔리안24 마데카 옴므', c:'남성/올인원', h:0 },
+      { id:17, n:'닥터지 그린 마일드 업 선크림', c:'선케어', h:1 }, { id:18, n:'라운드랩 자작나무 선크림', c:'선케어', h:1 },
+      { id:19, n:'AHC 내추럴 퍼펙션 선스틱', c:'선케어', h:0 }, { id:20, n:'메이크프렘 모이스처 폼', c:'클렌징', h:0 },
+      { id:21, n:'마녀공장 퓨어 클렌징 오일', c:'클렌징', h:1 }, { id:22, n:'카밀 핸드 앤 네일 크림', c:'기타', h:0 },
+      { id:23, n:'메디힐 에센셜 마스크팩', c:'기타', h:0 }, { id:24, n:'스팀베이스 아이마스크', c:'기타', h:0 }
+    ];
+
+    const bD = [
+      { id:'hana', n:'하나', b:5.0, max:7.6, o:[{n:'급여 12회',r:1.8},{n:'청약',r:0.4},{n:'공제회',r:0.2},{n:'카드',r:0.2}] },
+      { id:'ibk', n:'기업', b:5.0, max:7.5, o:[{n:'급여 12회',r:1.2},{n:'청약',r:0.5},{n:'나라사랑',r:0.3},{n:'적금',r:0.5}] },
+      { id:'kb', n:'국민', b:5.0, max:7.5, o:[{n:'급여이체',r:1.0},{n:'청약',r:1.0},{n:'밀리터리클럽',r:0.5}] },
+      { id:'shin', n:'신한', b:5.0, max:7.5, o:[{n:'급여이체',r:1.0},{n:'청약',r:1.0},{n:'증권',r:0.5}] },
+      { id:'po', n:'우체국', b:5.0, max:7.7, o:[{n:'첫거래',r:1.1},{n:'체크카드',r:0.6},{n:'이체',r:1.0}] },
+      { id:'nh', n:'농협', b:5.0, max:6.0, o:[{n:'한도/횟수',r:0.5},{n:'청약',r:0.3},{n:'카드',r:0.2}] },
+      { id:'wo', n:'우리', b:5.0, max:6.0, o:[{n:'자동이체',r:0.4},{n:'기타우대',r:0.6}] },
+      { id:'im', n:'iM뱅크', b:5.0, max:5.5, o:[{n:'카드',r:0.3},{n:'청약',r:0.2}] }
+    ];
+
+    window.switchTab = (tId) => { 
+      ['home','savings','goodman','qna','benefits'].forEach(id => { 
+        const el = q(`tab-${id}`), btn = q(`nav-btn-${id}`); 
+        if(el) el.classList.toggle('hidden', id !== tId); 
+        if(btn) btn.className = id === tId ? 'flex flex-col items-center gap-1 text-[var(--mil-green)] scale-105 transition-all' : 'flex flex-col items-center gap-1 text-[#B0B8C1] transition-all'; 
+      }); 
+      if(tId==='savings') window.renderSav(); 
+      if(tId==='goodman' && q('px-items-container').innerHTML==='') window.renderPX(); 
+    };
+
+    function getRank(e, d, n) {
+      if(!e) return null;
+      let pfc = new Date(e.getFullYear(), e.getMonth()+3, 1), cpl = new Date(pfc.getFullYear(), pfc.getMonth()+6, 1), sgt = new Date(cpl.getFullYear(), cpl.getMonth()+6, 1);
+      if(n < pfc) return { r:'이병', nD:pfc, nN:'일병' }; 
+      if(n < cpl) return { r:'일병', nD:cpl, nN:'상병' }; 
+      if(n < sgt) return { r:'상병', nD:sgt, nN:'병장' }; 
+      if(n < d) return { r:'병장', nD:d, nN:'전역' }; 
+      return { r:'전역', nD:null, nN:null };
+    }
+    
+    function getGFRank(r) {
+      if(r==='이병'||r==='훈련병') return { i:'🌿', n:'새싹', s:0.75, o:0.2 }; 
+      if(r==='일병') return { i:'🌷', n:'꽃봉오리', s:0.90, o:0.4 }; 
+      if(r==='상병') return { i:'🌸', n:'예쁜 꽃', s:1.05, o:0.7 }; 
+      if(r==='병장') return { i:'🌸', n:'활짝 핀 꽃', s:1.15, o:0.9 }; 
+      if(r==='전역') return { i:'💐👠', n:'특급꽃신', s:1.25, o:1.0 }; 
+      return { i:'🌱', n:'씨앗', s:0.7, o:0.1 };
+    }
+
+    let sT;
+    function startSal() {
+      if(sT) clearInterval(sT); if(!state.enlistDate) return;
+      sT = setInterval(() => {
+        let n = new Date(); if(n < state.enlistDate) return; 
+        let c = n > state.dischargeDate ? state.dischargeDate : n; 
+        let elapsedMonths = (c.getTime() - state.enlistDate.getTime()) / 2628000000; 
+        
+        let basePay = 0; 
+        if(elapsedMonths <= 2) basePay = elapsedMonths * 750000; 
+        else if(elapsedMonths <= 8) basePay = (2*750000) + ((elapsedMonths-2)*900000); 
+        else if(elapsedMonths <= 14) basePay = (2*750000) + (6*900000) + ((elapsedMonths-8)*1200000); 
+        else basePay = (2*750000) + (6*900000) + (6*1200000) + ((elapsedMonths-14)*1500000);
+        
+        let matchPay = state.incM ? (elapsedMonths * 550000) : 0; 
+        q('live-total-salary').innerText = (basePay + matchPay).toLocaleString('ko-KR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        if(Math.random()<0.05 && !document.hidden && !q('tab-home').classList.contains('hidden')) window.dropBill();
+      }, 50); 
+    }
+
+    window.dropBill = () => {
+      let c = q('money-rain-container'); if(!c) return; let p = document.createElement('div'); p.className = 'falling-money'; p.style.left = `${Math.floor(Math.random()*85)}%`;
+      let r = Math.random(); p.innerHTML = r>0.6 ? `<div class="px-2 py-0.5 rounded shadow-sm bg-[#F2BA49] text-[10px] text-white font-bold border border-[#D4A373]">₩50,000</div>` : r>0.2 ? `<div class="px-2 py-0.5 rounded shadow-sm bg-[#6B7B5C] text-[10px] text-white font-bold border border-[#485642]">₩10,000</div>` : `<div class="w-6 h-6 rounded-full bg-[#E5E8EB] border-2 border-white flex items-center justify-center text-[7px] font-bold text-[#4E5968]">500</div>`;
+      c.appendChild(p); setTimeout(()=>p.remove(), 2200);
+    };
+    window.triggerExtraDrop = () => { for(let i=0;i<20;i++) setTimeout(window.dropBill, Math.random()*600); };
+    window.updateLiveSalaryTick = () => { state.incM = q('check-matching').checked; };
+
+    function updateH() {
+      if(!state.enlistDate) return;
+      q('clean-state-banner').classList.add('hidden'); q('soldier-card').classList.remove('hidden'); q('salary-card').classList.remove('hidden');
+      
+      const now = new Date(), ri = getRank(state.enlistDate, state.dischargeDate, now); state.bfRankStr = ri.r;
+      const td = Math.ceil((state.dischargeDate - state.enlistDate)/86400000), sd = Math.max(0, Math.ceil((now - state.enlistDate)/86400000)), pct = Math.min(100, Math.max(0, (sd/td)*100));
+      q('app-header-title').innerText = state.bfTheme==='tiger'?'짬타이거':'감자돌이'; q('app-logo-emoji').innerText = state.bfTheme==='tiger'?'🐯':'🥔';
+      q('bf-name').innerText = state.bfTheme==='tiger'?'육군 짬타이거':'육군 감자돌이'; q('bf-rank').innerText = ri.r; q('bf-dday').innerText = sd>=td ? '전역!' : `D-${td-sd}`;
+      q('bf-pct').innerText = `${pct.toFixed(1)}%`; q('bf-served-days').innerText = `${sd}일 / ${td}일`; q('bf-progress').style.width = `${pct}%`;
+      q('bf-next-promo').innerText = ri.nD ? `다음 진급(${ri.nN}): ${ri.nD.getMonth()+1}.${ri.nD.getDate()}` : '-';
+
+      let bfRender = '';
+      if(state.bfTheme === 'tiger') {
+         let img = 'image_40.png'; 
+         if(ri.r === '일병') img = 'image_43.png';
+         if(ri.r === '상병') img = 'image_42.png';
+         if(ri.r === '병장' || ri.r === '전역') img = 'image_41.png';
+         bfRender = `<img src="${img}" alt="짬타이거" class="w-[120%] h-[120%] object-contain pt-3 transition-transform duration-500 hover:scale-105">`;
+      } else {
+         let hair = '';
+         if(ri.r==='일병') hair='<path d="M 50 25 L 50 15 M 45 27 L 40 18 M 55 27 L 60 18" stroke="#485642" stroke-width="2.5" stroke-linecap="round"/>';
+         else if(ri.r==='상병') hair='<path d="M 35 30 Q 50 15 65 30 Z" fill="#485642"/>';
+         else if(ri.r==='병장'||ri.r==='전역') hair='<path d="M 28 32 C 28 5 72 5 72 32 C 67 20 33 20 28 32 Z" fill="#283224"/><path d="M 55 12 L 55 30" stroke="#111" stroke-width="2"/>';
+         bfRender = `<svg viewBox="0 0 100 120" class="w-[120%] h-[120%] mt-3"><g transform="translate(0, 10)"><path d="M 25 60 C 25 30 75 30 75 60 C 75 90 65 95 50 95 C 35 95 25 90 25 60 Z" fill="#D4A373" stroke="#191F28" stroke-width="2.5"/><circle cx="40" cy="55" r="4" fill="#191F28"/><circle cx="60" cy="55" r="4" fill="#191F28"/><circle cx="38" cy="53" r="1.5" fill="#fff"/><circle cx="58" cy="53" r="1.5" fill="#fff"/><path d="M 45 65 Q 50 70 55 65" fill="none" stroke="#191F28" stroke-width="2.5" stroke-linecap="round"/><circle cx="33" cy="62" r="4" fill="#F28C9F" opacity="0.6"/><circle cx="67" cy="62" r="4" fill="#F28C9F" opacity="0.6"/>${hair}</g></svg>`;
+      }
+      q('bf-img-container').innerHTML = bfRender;
+
+      if(state.isLinked || partnerUid) {
+        q('gf-profile-card').classList.remove('hidden'); 
+        const gfI = getGFRank(ri.r); 
+        q('gf-rank-icon').innerText = gfI.i; q('gf-rank-name').innerText = gfI.n;
+        q('gf-name').innerText = state.gfTheme==='gomsin' ? '예쁜 곰신 베어' : '턱시도 꽃냥이';
+        
+        let gfImg = state.gfTheme==='gomsin' ? 'image_34.png' : 'image_33.png';
+        q('gf-img-container').innerHTML = `<img src="${gfImg}" class="w-full h-full object-cover transition-all duration-1000" style="transform: scale(${gfI.s})">`;
+        document.documentElement.style.setProperty('--halo-op', gfI.o); 
+      }
+      startSal();
+    }
+
+    window.cTh = (role, th, skipUpdate) => {
+      if(role==='bf') state.bfTheme = th; if(role==='gf') state.gfTheme = th;
+      ['gamja','tiger'].forEach(t => q(`theme-bf-${t}`).className = state.bfTheme===t ? 'py-2.5 rounded-xl border-2 border-[var(--mil-green)] bg-[var(--mil-green-light)] text-[var(--mil-green)] font-bold text-[12px]' : 'py-2.5 rounded-xl border-2 border-transparent bg-[#F5F6F8] text-[#8B95A1] font-bold text-[12px]');
+      ['gomsin','cat'].forEach(t => q(`theme-gf-${t}`).className = state.gfTheme===t ? 'py-2.5 rounded-xl border-2 border-[var(--pink-main)] bg-[var(--pink-light)] text-[var(--pink-main)] font-bold text-[12px]' : 'py-2.5 rounded-xl border-2 border-transparent bg-[#F5F6F8] text-[#8B95A1] font-bold text-[12px]');
+      if(state.enlistDate && !skipUpdate) updateH();
+    };
+
+    window.autoD = () => { 
+      let e=q('set-enlist').value; if(!e) return showAlert('알림','입대일을 선택하세요.'); 
+      let d=new Date(e); d.setMonth(d.getMonth()+18); d.setDate(d.getDate()-1); q('set-discharge').value=d.toISOString().split('T')[0]; 
+    };
+
+    window.triggerEvolutionCutscene = () => { 
+      if(!state.enlistDate) return; 
+      let o = document.createElement('div'); o.className='flash-overlay'; document.body.appendChild(o); 
+      setTimeout(()=>{showAlert('진화 ✨', `[${state.bfRankStr}] 모습으로 위풍당당하게 섰습니다!`); o.remove();}, 500); 
+    };
+    
+    window.calcRoute = () => { 
+      let s=encodeURIComponent(q('route-start').value||'부대'), e=encodeURIComponent(q('route-end').value||'집'); 
+      q('route-results').classList.remove('hidden'); 
+      q('route-results').innerHTML=`<div class="bg-[#F5F6F8] rounded-xl p-3 border cursor-pointer" onclick="window.open('https://map.kakao.com/?sName=${s}&eName=${e}')"><div class="flex justify-between mb-1.5"><span class="text-[12px] font-bold text-[var(--mil-green)]">최단 경로 (터치)</span><span class="text-[12px] font-bold">약 2시간 18분</span></div><p class="text-[11px] text-[#4E5968]">터치 시 카카오맵 바로 연결</p></div>`; 
+    };
+    window.getGPSLocation = () => { q('route-start').value = '강원 화천 (현 위치)'; showAlert('GPS 확인', '현재 위치에서 부대 주변 주소지를 설정했습니다.'); };
+
+    // PX 굿맨 
+    window.renderPX = () => { 
+      let c=q('px-items-container'); c.innerHTML=''; 
+      pxI.forEach(i=>{ 
+        let ch=state.pxCart.includes(i.id)?'checked':''; 
+        c.innerHTML+=`<label class="bg-white rounded-xl p-3 border flex items-center justify-between cursor-pointer"><div><div class="text-[10px] font-bold ${i.h?'text-[var(--pink-main)]':'text-[#8B95A1]'} mb-1">${i.h?'🔥 HOT':''} ${i.c}</div><div class="text-[13px] font-bold">${i.n}</div></div><input type="checkbox" ${ch} onchange="window.tPx(${i.id})" class="w-5 h-5 accent-[var(--mil-green)] rounded"></label>`; 
+      }); 
+    };
+    window.tPx = (id) => { 
+      if(state.pxCart.includes(id)) state.pxCart=state.pxCart.filter(x=>x!==id); else state.pxCart.push(id); 
+      q('px-sel-cnt').innerText=state.pxCart.length; 
+    };
+    window.sendL = () => { 
+      if(!state.pxCart.length) return showAlert('알림','장바구니가 비어있습니다.'); 
+      q('btn-letter-alert').classList.remove('hidden'); q('btn-letter-alert').classList.add('animate-letter'); 
+      showAlert('전송 완료', '상대방에게 조르기 편지가 실시간으로 발송되었습니다!'); 
+    };
+    window.showR = () => { 
+      if(!state.pxCart.length) return showAlert('알림', '먼저 제품을 담고 굿맨 변신을 눌러주세요!');
+      let r = `<div class="text-left space-y-4">`, c = state.pxCart.map(id=>pxI.find(x=>x.id===id));
+      if(c.some(x=>x.c==='클렌징')) r += `<div><b class="text-[var(--mil-green)]">🫧 0단계. 클렌징</b><br>오일을 <b>500원 동전 크기</b>만큼 짜서 부드럽게 롤링하여 녹여주세요.</div>`;
+      if(c.some(x=>x.c==='토너/패드')) r += `<div><b class="text-[var(--mil-green)]">💧 1단계. 토너/패드</b><br>화장솜에 <b>500원 크기</b>로 충분히 적셔 피부결을 따라 가볍게 닦아냅니다.</div>`;
+      if(c.some(x=>x.c==='기능성/세럼')) r += `<div><b class="text-[var(--mil-green)]">✨ 2단계. 스페셜 세럼/앰플</b><br><b>완두콩 1~2알 크기</b>를 덜어 부드럽게 흡수시키세요.</div>`;
+      if(c.some(x=>x.c==='크림'||x.c==='남성/올인원')) r += `<div><b class="text-[var(--mil-green)]">🛡️ 3단계. 수분크림/올인원</b><br><b>아몬드 1알 크기</b>를 얼굴 전체에 도포하여 보습막을 쳐줍니다.</div>`;
+      if(c.some(x=>x.c==='선케어')) r += `<div><b class="text-[var(--mil-green)]">☀️ 4단계. 선케어</b><br>외출 전 <b>검지 2마디 분량</b>을 듬뿍 짜서 빈틈없이 발라주세요.</div>`;
+      if(!r.includes('b>')) r += `<div>마스크팩이나 바디 제품은 샤워 후 사용하시면 됩니다!</div>`;
+      r += `</div>`; showAlert('✨ 굿맨 맞춤 스킨케어 루틴', r); 
+    };
+
+    // 다중 적금
+    window.renderSav = () => {
+      let bG = q('bank-selector-grid');
+      if(bG.innerHTML === '') bD.forEach(b => { bG.innerHTML += `<button id="btn-bank-${b.id}" onclick="window.toggleBank('${b.id}')" class="py-2 rounded-lg border border-[#E5E8EB] bg-white text-[12px] font-bold text-[#4E5968] transition">${b.n}</button>`; });
+      window.updateSavUI();
+    };
+    window.toggleBank = (id) => {
+      if(state.selBanks.includes(id)) state.selBanks = state.selBanks.filter(x => x !== id);
+      else { if(state.selBanks.length >= 4) return showAlert('한도 초과', '최대 4개 은행만 선택 가능합니다.'); state.selBanks.push(id); }
+      window.updateSavUI();
+    };
+    window.updateSavUI = () => {
+      bD.forEach(b => { let btn = q(`btn-bank-${b.id}`); if(btn) btn.className = state.selBanks.includes(b.id) ? 'py-2 rounded-lg border-2 border-[var(--mil-green)] bg-[var(--mil-green-light)] text-[var(--mil-green)] font-bold text-[12px] transition' : 'py-2 rounded-lg border border-[#E5E8EB] bg-white text-[12px] font-bold text-[#4E5968] transition'; });
+      let c = q('selected-banks-container'); c.innerHTML = '';
+      if(state.selBanks.length === 0) { c.innerHTML = `<div class="text-center text-[12px] text-[#8B95A1] py-4">은행을 상단에서 선택해주세요.</div>`; window.calcTotalSav(); return; }
+      let defaultAmt = Math.floor(550000 / state.selBanks.length);
+      state.selBanks.forEach(bId => {
+        let b = bD.find(x => x.id === bId);
+        let optsHtml = b.o.map((opt, i) => `<label class="flex items-center gap-1.5 cursor-pointer p-1"><input type="checkbox" class="w-4 h-4 accent-[var(--mil-green)] b-opt-${b.id}" data-r="${opt.r}" onchange="window.calcTotalSav()"><span class="text-[11px] font-semibold">${opt.n} <b class="text-[var(--mil-green)]">+${opt.r}%</b></span></label>`).join('');
+        c.innerHTML += `<div class="bg-white rounded-xl p-4 border border-[var(--mil-green)]"><div class="flex justify-between items-center mb-3"><div class="text-[14px] font-bold">${b.n} (기본 ${b.b}%)</div><div class="flex items-center gap-1"><input type="number" id="amt-${b.id}" value="${defaultAmt}" step="10000" class="w-24 bg-[#F5F6F8] rounded-lg px-2 py-1 text-right text-[13px] font-bold" oninput="window.calcTotalSav()"><span class="text-[12px] font-bold">원</span></div></div><div class="grid grid-cols-2 gap-1 bg-[#F5F6F8] p-3 rounded-lg">${optsHtml}</div></div>`;
+      });
+      window.calcTotalSav();
+    };
+    window.calcTotalSav = () => {
+      let tP = 0, tI = 0, totalMonthly = 0;
+      state.selBanks.forEach(bId => {
+        let b = bD.find(x => x.id === bId);
+        let amt = parseInt(q(`amt-${bId}`)?.value || 0); totalMonthly += amt;
+        let checkedR = 0; document.querySelectorAll(`.b-opt-${bId}:checked`).forEach(cb => checkedR += parseFloat(cb.getAttribute('data-r')));
+        let finalR = Math.min(b.max, b.b + checkedR), prin = amt * 18, interest = Math.floor(prin * (finalR / 100) * (19 / 24)); 
+        tP += prin; tI += interest;
+      });
+      let isWarn = totalMonthly > 550000;
+      state.selBanks.forEach(bId => { if(parseInt(q(`amt-${bId}`)?.value || 0) > 300000) isWarn = true; });
+      q('saving-split-warning').classList.toggle('hidden', !isWarn);
+      q('saving-total-result').innerText = (tP + tI + tP).toLocaleString();
+      q('saving-prin').innerText = tP.toLocaleString(); q('saving-int').innerText = tI.toLocaleString(); q('saving-match').innerText = tP.toLocaleString();
+    };
+  </script>
+</body>
+</html>
+```eof
